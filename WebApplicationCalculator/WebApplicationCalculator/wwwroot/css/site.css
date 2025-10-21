@@ -1,0 +1,173 @@
+/* Сброс стилей для правильного центрирования */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+/* Стили для калькулятора */
+.calculator {
+  background: #ffffff;
+  border: 1px solid #cccccc;
+  border-radius: 4px;
+  padding: 20px;
+  max-width: 300px;
+  width: 100%;
+  margin: 0 auto;
+  position: relative;
+}
+
+.calculator-display {
+  background: #f5f5f5;
+  color: #333333;
+  font-size: 2rem;
+  font-weight: normal;
+  text-align: right;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid #cccccc;
+  font-family: monospace;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.calculator-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.calc-btn {
+  background: #f5f5f5;
+  color: #333333;
+  border: 1px solid #cccccc;
+  border-radius: 4px;
+  font-size: 1.2rem;
+  font-weight: normal;
+  padding: 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.calc-btn:hover {
+  background: #e5e5e5;
+}
+
+.calc-btn:active {
+  background: #d5d5d5;
+}
+
+.calc-btn.operator {
+  background: #e5e5e5;
+  color: #333333;
+}
+
+.calc-btn.operator:hover {
+  background: #d5d5d5;
+}
+
+.calc-btn.clear {
+  background: #e5e5e5;
+  color: #333333;
+}
+
+.calc-btn.clear:hover {
+  background: #d5d5d5;
+}
+
+.calc-btn.equals {
+  background: #e5e5e5;
+  color: #333333;
+}
+
+.calc-btn.equals:hover {
+  background: #d5d5d5;
+}
+
+.calc-btn.zero {
+  grid-column: span 2;
+}
+
+.calc-btn.number {
+  background: #ffffff;
+  color: #333333;
+}
+
+.calc-btn.number:hover {
+  background: #f5f5f5;
+}
+
+/* Скрыть навигационную панель */
+header {
+  display: none !important;
+}
+
+/* Переопределить Bootstrap контейнер для центрирования */
+.container {
+  max-width: none !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+main {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Адаптивность */
+@media (max-width: 400px) {
+  .calculator {
+    margin: 20px;
+    padding: 16px;
+    max-width: 280px;
+  }
+  
+  .calc-btn {
+    padding: 12px;
+    font-size: 1.1rem;
+  }
+  
+  .calculator-display {
+    font-size: 1.8rem;
+    padding: 16px;
+    min-height: 50px;
+  }
+}
+
+@media (max-width: 320px) {
+  .calculator {
+    margin: 10px;
+    padding: 12px;
+    max-width: 260px;
+  }
+  
+  .calc-btn {
+    padding: 10px;
+    font-size: 1rem;
+  }
+  
+  .calculator-display {
+    font-size: 1.6rem;
+    padding: 12px;
+    min-height: 45px;
+  }
+}
