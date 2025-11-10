@@ -14,10 +14,10 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["5_Calculator/5_Calculator.csproj", "5_Calculator/"]
-RUN dotnet restore "./5_Calculator/5_Calculator.csproj"
+COPY ["5_Calculator.csproj", "."]
+RUN dotnet restore "./5_Calculator.csproj"
 COPY . .
-WORKDIR "/src/5_Calculator"
+WORKDIR "/src/."
 RUN dotnet build "./5_Calculator.csproj" -c %BUILD_CONFIGURATION% -o /app/build
 
 # Этот этап используется для публикации проекта службы, который будет скопирован на последний этап
