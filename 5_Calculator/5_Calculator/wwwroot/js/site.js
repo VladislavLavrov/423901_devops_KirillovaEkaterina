@@ -69,18 +69,52 @@
     updateDisplay();
   }
 
-  function evaluate() {
+  async function evaluate() {
     if (operator === null || previous === null) return;
     const a = previous;
     const b = parseFloat(current);
-    let res = a;
-    switch (operator) {
-      case '+': res = a + b; break;
-      case '-': res = a - b; break;
-      case '*': res = a * b; break;
-      case '/': res = b === 0 ? NaN : a / b; break;
+    
+    // Отправляем запрос на сервер для расчета
+    try {
+      const formData = new FormData();
+      formData.append('Number1', a.toString());
+      formData.append('Number2', b.toString());
+      formData.append('Operation', operator);
+
+      const response = await fetch('/Home/Calculator', {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Ошибка сервера');
+      }
+
+      const data = await response.json();
+      
+      if (data.errorMessage) {
+        current = data.errorMessage;
+      } else if (data.result !== null && data.result !== undefined) {
+        current = String(round10(data.result, 10));
+      } else {
+        current = 'Ошибка';
+      }
+    } catch (error) {
+      console.error('Ошибка при отправке запроса:', error);
+      // Fallback на клиентский расчет в случае ошибки
+      let res = a;
+      switch (operator) {
+        case '+': res = a + b; break;
+        case '-': res = a - b; break;
+        case '*': res = a * b; break;
+        case '/': res = b === 0 ? NaN : a / b; break;
+      }
+      current = String(Number.isFinite(res) ? round10(res, 10) : 'Ошибка');
     }
-    current = String(Number.isFinite(res) ? round10(res, 10) : 'Ошибка');
+    
     previous = null;
     operator = null;
     justEvaluated = true;
