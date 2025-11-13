@@ -12,12 +12,21 @@
   let operator = null;
   let justEvaluated = false;
 
+  function setResultHighlight(isResult) {
+    if (isResult) {
+      display.classList.add('calculator-display-result');
+    } else {
+      display.classList.remove('calculator-display-result');
+    }
+  }
+
   function updateDisplay() {
     display.value = current;
   }
 
   function inputDigit(d) {
     if (justEvaluated) { current = '0'; justEvaluated = false; }
+    setResultHighlight(false);
     if (current === '0' && d !== '.') {
       current = d;
     } else if (d === '.' && current.includes('.')) {
@@ -34,12 +43,14 @@
     } else {
       previous = parseFloat(current);
     }
+    setResultHighlight(false);
     operator = op;
     justEvaluated = false;
     current = '0';
   }
 
   function clearAll() {
+    setResultHighlight(false);
     current = '0';
     previous = null;
     operator = null;
@@ -49,6 +60,7 @@
 
   function backspace() {
     if (justEvaluated) { return; }
+    setResultHighlight(false);
     if (current.length <= 1 || (current.length === 2 && current.startsWith('-'))) {
       current = '0';
     } else {
@@ -59,11 +71,13 @@
 
   function toggleSign() {
     if (current === '0') return;
+    setResultHighlight(false);
     current = current.startsWith('-') ? current.slice(1) : '-' + current;
     updateDisplay();
   }
 
   function toPercent() {
+    setResultHighlight(false);
     const num = parseFloat(current || '0');
     current = (num / 100).toString();
     updateDisplay();
@@ -118,6 +132,7 @@
     previous = null;
     operator = null;
     justEvaluated = true;
+    setResultHighlight(true);
     updateDisplay();
   }
 

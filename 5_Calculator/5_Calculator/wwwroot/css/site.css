@@ -46,6 +46,10 @@ body {
   color: #333;
 }
 
+.calculator-display.calculator-display-result {
+  color: #2e7d32;
+}
+
 .calculator-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
