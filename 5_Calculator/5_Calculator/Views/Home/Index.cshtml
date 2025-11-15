@@ -1,0 +1,36 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="calculator-wrapper">
+    <div class="calculator">
+        <input id="calc-display" class="calculator-display" type="text" readonly value="0" />
+
+        <div class="calculator-grid">
+            <button class="btn-calc btn-func" data-action="clear">C</button>
+            <button class="btn-calc btn-func" data-action="back">⌫</button>
+            <button class="btn-calc btn-func" data-action="sign">±</button>
+            <button class="btn-calc btn-op" data-value="/">÷</button>
+
+            <button class="btn-calc" data-value="7">7</button>
+            <button class="btn-calc" data-value="8">8</button>
+            <button class="btn-calc" data-value="9">9</button>
+            <button class="btn-calc btn-op" data-value="*">×</button>
+
+            <button class="btn-calc" data-value="4">4</button>
+            <button class="btn-calc" data-value="5">5</button>
+            <button class="btn-calc" data-value="6">6</button>
+            <button class="btn-calc btn-op" data-value="-">−</button>
+
+            <button class="btn-calc" data-value="1">1</button>
+            <button class="btn-calc" data-value="2">2</button>
+            <button class="btn-calc" data-value="3">3</button>
+            <button class="btn-calc btn-op" data-value="+">+</button>
+
+            <button class="btn-calc" data-action="percent">%</button>
+            <button class="btn-calc" data-value="0">0</button>
+            <button class="btn-calc" data-value=".">.</button>
+            <button class="btn-calc btn-eq" data-action="equals">=</button>
+        </div>
+    </div>
+</div>
