@@ -1,10 +1,18 @@
-﻿namespace _5_Calculator.Data
+﻿using _5_Calculator.Models;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace _5_Calculator.Data
 {
     public class DataInputVariant
     {
-        public int Id { get; set; }
-        public string Operand_1 { get; set; } = string.Empty;
-        public string Operand_2 { get; set; } = string.Empty;
-        public string Type_operation { get; set; } = string.Empty;
+        [Key]
+        public int ID_DataInputVariant { get; set; }
+        public double Operand_1 { get; set; }
+        public double Operand_2 { get; set; }
+        public Operation Type_operation { get; set; }
+
+        [Column(TypeName = "varchar(128)")]
+        public string? Result { get; set; }
     }
 }
