@@ -3,6 +3,9 @@ using _5_Calculator.Models;
 using _5_Calculator.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Confluent.Kafka;
+using System.Text.Json;
+
 
 namespace _5_Calculator.Controllers
 {
@@ -11,10 +14,12 @@ namespace _5_Calculator.Controllers
         private readonly ILogger<HomeController> _logger;
         private readonly CalculatorContext _context;
 
+        private readonly KafkaProducerService<Null, string> _producer;
         public HomeController(ILogger<HomeController> logger, CalculatorContext context)
         {
             _logger = logger;
             _context = context;
+
         }
 
         public IActionResult Index()
