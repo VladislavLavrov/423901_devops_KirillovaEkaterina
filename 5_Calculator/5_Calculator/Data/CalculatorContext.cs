@@ -10,5 +10,10 @@ namespace _5_Calculator.Data
         }
 
         public DbSet<DataInputVariant> DataInputVariants { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            //OnModelCreating(modelBuilder);
+        }
     }
 }

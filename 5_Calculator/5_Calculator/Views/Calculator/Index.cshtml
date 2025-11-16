@@ -1,0 +1,222 @@
+@model List<_5_Calculator.Data.DataInputVariant>
+@{
+    ViewData["Title"] = "Калькулятор";
+}
+
+<div class="calculator-wrapper">
+    <div class="calculator">
+        <input id="calc-display" class="calculator-display" type="text" readonly value="0" />
+
+        <div class="calculator-grid">
+            <button class="btn-calc btn-func" data-action="clear">C</button>
+            <button class="btn-calc btn-func" data-action="back">⌫</button>
+            <button class="btn-calc btn-func" data-action="sign">±</button>
+            <button class="btn-calc btn-op" data-value="/">÷</button>
+
+            <button class="btn-calc" data-value="7">7</button>
+            <button class="btn-calc" data-value="8">8</button>
+            <button class="btn-calc" data-value="9">9</button>
+            <button class="btn-calc btn-op" data-value="*">×</button>
+
+            <button class="btn-calc" data-value="4">4</button>
+            <button class="btn-calc" data-value="5">5</button>
+            <button class="btn-calc" data-value="6">6</button>
+            <button class="btn-calc btn-op" data-value="-">−</button>
+
+            <button class="btn-calc" data-value="1">1</button>
+            <button class="btn-calc" data-value="2">2</button>
+            <button class="btn-calc" data-value="3">3</button>
+            <button class="btn-calc btn-op" data-value="+">+</button>
+
+            <button class="btn-calc" data-action="percent">%</button>
+            <button class="btn-calc" data-value="0">0</button>
+            <button class="btn-calc" data-value=".">.</button>
+            <button class="btn-calc btn-eq" data-action="equals">=</button>
+        </div>
+    </div>
+</div>
+
+@if (Model != null && Model.Any())
+{
+    <div class="history-section">
+        <h3>История операций</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Операнд 1</th>
+                    <th>Операнд 2</th>
+                    <th>Операция</th>
+                    <th>Результат</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.ID_DataInputVariant</td>
+                        <td>@item.Operand_1</td>
+                        <td>@item.Operand_2</td>
+                        <td>@item.Type_operation.GetDisplayName()</td>
+                        <td>@item.Result</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<form id="calc-form" method="post" action="/Calculator/Calculate" style="display: none;">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="num1" id="calc-num1" />
+    <input type="hidden" name="num2" id="calc-num2" />
+    <input type="hidden" name="operation" id="calc-operation" />
+</form>
+
+@section Scripts {
+    <script>
+        // Calculator logic
+        (function () {
+            const display = document.getElementById('calc-display');
+            const keypad = document.querySelector('.calculator-grid');
+            const form = document.getElementById('calc-form');
+            if (!display || !keypad || !form) return;
+
+            let current = '0';
+            let previous = null;
+            let operator = null;
+            let justEvaluated = false;
+
+            function setResultHighlight(isResult) {
+                if (isResult) {
+                    display.classList.add('calculator-display-result');
+                } else {
+                    display.classList.remove('calculator-display-result');
+                }
+            }
+
+            function updateDisplay() {
+                display.value = current;
+            }
+
+            function inputDigit(d) {
+                if (justEvaluated) { current = '0'; justEvaluated = false; }
+                setResultHighlight(false);
+                if (current === '0' && d !== '.') {
+                    current = d;
+                } else if (d === '.' && current.includes('.')) {
+                    return;
+                } else {
+                    current += d;
+                }
+                updateDisplay();
+            }
+
+            function setOperator(op) {
+                if (operator && !justEvaluated) {
+                    evaluate();
+                } else {
+                    previous = parseFloat(current);
+                }
+                setResultHighlight(false);
+                operator = op;
+                justEvaluated = false;
+                current = '0';
+            }
+
+            function clearAll() {
+                setResultHighlight(false);
+                current = '0';
+                previous = null;
+                operator = null;
+                justEvaluated = false;
+                updateDisplay();
+            }
+
+            function backspace() {
+                if (justEvaluated) { return; }
+                setResultHighlight(false);
+                if (current.length <= 1 || (current.length === 2 && current.startsWith('-'))) {
+                    current = '0';
+                } else {
+                    current = current.slice(0, -1);
+                }
+                updateDisplay();
+            }
+
+            function toggleSign() {
+                if (current === '0') return;
+                setResultHighlight(false);
+                current = current.startsWith('-') ? current.slice(1) : '-' + current;
+                updateDisplay();
+            }
+
+            function toPercent() {
+                setResultHighlight(false);
+                const num = parseFloat(current || '0');
+                current = (num / 100).toString();
+                updateDisplay();
+            }
+
+            function mapOperationToEnum(op) {
+                switch (op) {
+                    case '+': return 1; // Add
+                    case '-': return 2; // Subtract
+                    case '*': return 3; // Multiply
+                    case '/': return 4; // Divide
+                    default: return 1;
+                }
+            }
+
+            function evaluate() {
+                if (operator === null || previous === null) return;
+                const a = previous;
+                const b = parseFloat(current);
+
+                // Отправляем данные через форму на сервер
+                document.getElementById('calc-num1').value = a.toString();
+                document.getElementById('calc-num2').value = b.toString();
+                document.getElementById('calc-operation').value = mapOperationToEnum(operator).toString();
+                form.submit();
+            }
+
+            keypad.addEventListener('click', (e) => {
+                const btn = e.target.closest('button');
+                if (!btn) return;
+                const value = btn.getAttribute('data-value');
+                const action = btn.getAttribute('data-action');
+                if (value !== null) {
+                    if (['+', '-', '*', '/'].includes(value)) {
+                        setOperator(value);
+                    } else {
+                        inputDigit(value);
+                    }
+                } else if (action) {
+                    handleAction(action);
+                }
+            });
+
+            function handleAction(action) {
+                switch (action) {
+                    case 'clear': clearAll(); break;
+                    case 'back': backspace(); break;
+                    case 'sign': toggleSign(); break;
+                    case 'percent': toPercent(); break;
+                    case 'equals': evaluate(); break;
+                }
+            }
+
+            document.addEventListener('keydown', (e) => {
+                const key = e.key;
+                if (/^[0-9]$/.test(key)) { inputDigit(key); return; }
+                if (key === '.') { inputDigit('.'); return; }
+                if (key === '+' || key === '-' || key === '*' || key === '/') { setOperator(key); return; }
+                if (key === 'Enter' || key === '=') { e.preventDefault(); evaluate(); return; }
+                if (key === 'Backspace') { backspace(); return; }
+                if (key.toLowerCase() === 'c') { clearAll(); return; }
+                if (key === '%') { toPercent(); return; }
+            });
+        })();
+    </script>
+}
+
