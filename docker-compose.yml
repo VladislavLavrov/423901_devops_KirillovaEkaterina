@@ -2,6 +2,6 @@ services:
  web:
  container_name: web-app-5calculator-jenkins-3
  hostname: app
- build: . 
+ build: /5_Calculator/5_Calculator 
  ports:
  - "0.0.0.0:5205:5005"
