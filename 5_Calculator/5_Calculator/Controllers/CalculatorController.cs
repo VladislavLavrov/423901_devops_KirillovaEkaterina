@@ -24,7 +24,7 @@ namespace _5_Calculator.Controllers
         /// </summary>
         public IActionResult Index()
         {
-            //var data = _context.DataInputVariants.OrderByDescending(x => x.ID_DataInputVariant).ToList();
+            ///var data = _context.DataInputVariants.OrderByDescending(x => x.ID_DataInputVariant).ToList();
             return View();
         }
 
@@ -50,6 +50,7 @@ namespace _5_Calculator.Controllers
             await SendDataToKafka(dataInputVariant);
 
             // Перенаправление на страницу Index
+            await Task.Delay(5000);
             return RedirectToAction(nameof(Index));
         }
 
