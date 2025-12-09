@@ -13,8 +13,6 @@ namespace _5_Calculator.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly CalculatorContext _context;
-
-        private readonly KafkaProducerService<Null, string> _producer;
         public HomeController(ILogger<HomeController> logger, CalculatorContext context)
         {
             _logger = logger;
