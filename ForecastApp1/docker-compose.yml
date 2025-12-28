@@ -19,20 +19,18 @@ services:
     networks:
       - forecastapp_network
 
-  forecastapp:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: forecastapp_web
+  web:
+    container_name: ForecastApp1
+    hostname: app
+    build: .
+    ports:
+      - "0.0.0.0:5005:8080"
     depends_on:
       mariadb:
         condition: service_healthy
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://0.0.0.0:5005
       - ConnectionStrings__DefaultConnection=Server=mariadb; Database=predictApp; Uid=root; Pwd=rootpassword; Character Set=utf8; ConvertZeroDatetime=True;
-    ports:
-      - "5005:5005"
     networks:
       - forecastapp_network
 
