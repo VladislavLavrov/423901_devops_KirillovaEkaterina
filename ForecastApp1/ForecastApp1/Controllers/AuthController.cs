@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using MySqlConnector;
+using Microsoft.Data.Sqlite;
 using Dapper;
 using System.Security.Claims;
 
@@ -12,9 +12,9 @@ namespace ForecastApp1.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly Func<MySqlConnection> _connectionFactory;
+        private readonly Func<SqliteConnection> _connectionFactory;
 
-        public AuthController(Func<MySqlConnection> connectionFactory)
+        public AuthController(Func<SqliteConnection> connectionFactory)
         {
             _connectionFactory = connectionFactory;
         }
@@ -23,8 +23,9 @@ namespace ForecastApp1.Controllers
         public async Task<IActionResult> Login([FromForm] string username, [FromForm] string password)
         {
             using var conn = _connectionFactory();
+            conn.Open();
             var user = await conn.QuerySingleOrDefaultAsync<dynamic>(
-                "SELECT * FROM users WHERE username = @u", new { u = username, p = password });
+                "SELECT * FROM users WHERE username = @u", new { u = username });
 
             if (user == null) return Unauthorized("Пользователь не найден");
 

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MySqlConnector;
+using Microsoft.Data.Sqlite;
 using Dapper;
 using ExcelDataReader;
 using System.Data;
@@ -13,9 +13,9 @@ namespace ForecastApp1.Controllers
     [Authorize]
     public class ImportSpravochnikiController : ControllerBase
     {
-        private readonly Func<MySqlConnection> _connectionFactory;
+        private readonly Func<SqliteConnection> _connectionFactory;
 
-        public ImportSpravochnikiController(Func<MySqlConnection> connectionFactory)
+        public ImportSpravochnikiController(Func<SqliteConnection> connectionFactory)
         {
             _connectionFactory = connectionFactory;
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -42,6 +42,7 @@ namespace ForecastApp1.Controllers
                 });
 
                 using var conn = _connectionFactory();
+                conn.Open();
                 
                 // Обработка справочников из Excel
                 // Здесь должна быть логика парсинга и вставки данных в БД

@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MySqlConnector;
+using Microsoft.Data.Sqlite;
 using Dapper;
 using ExcelDataReader;
 using System.Data;
 using System.Text;
+using System.Linq;
 
 namespace ForecastApp1.Controllers
 {
@@ -13,9 +14,9 @@ namespace ForecastApp1.Controllers
     [Authorize]
     public class ImportController : ControllerBase
     {
-        private readonly Func<MySqlConnection> _connectionFactory;
+        private readonly Func<SqliteConnection> _connectionFactory;
 
-        public ImportController(Func<MySqlConnection> connectionFactory)
+        public ImportController(Func<SqliteConnection> connectionFactory)
         {
             _connectionFactory = connectionFactory;
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -41,13 +42,47 @@ namespace ForecastApp1.Controllers
                     }
                 });
 
+                // Получаем первую таблицу из Excel
+                if (dataSet.Tables.Count == 0)
+                {
+                    return BadRequest("Файл не содержит данных");
+                }
+
+                var table = dataSet.Tables[0];
+                
+                // Преобразуем DataTable в список словарей для передачи на фронтенд
+                var result = new List<Dictionary<string, object>>();
+                
+                foreach (DataRow row in table.Rows)
+                {
+                    var rowDict = new Dictionary<string, object>();
+                    foreach (DataColumn column in table.Columns)
+                    {
+                        var value = row[column];
+                        rowDict[column.ColumnName] = value == DBNull.Value ? null : value;
+                    }
+                    result.Add(rowDict);
+                }
+
+                // Получаем названия колонок
+                var columns = table.Columns.Cast<DataColumn>()
+                    .Select(c => c.ColumnName)
+                    .ToList();
+
                 using var conn = _connectionFactory();
+                conn.Open();
                 
                 // Обработка данных из Excel
                 // Здесь должна быть логика парсинга и вставки данных в БД
                 // В зависимости от структуры Excel файла
 
-                return Ok("Импорт успешно завершён");
+                return Ok(new
+                {
+                    message = "Импорт успешно завершён",
+                    columns = columns,
+                    data = result,
+                    totalRows = result.Count
+                });
             }
             catch (Exception ex)
             {

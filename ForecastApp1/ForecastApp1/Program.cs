@@ -1,4 +1,5 @@
-using MySqlConnector;
+using Microsoft.Data.Sqlite;
+using Dapper;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,13 +32,54 @@ builder.Services.AddAuthentication("Cookies")
     });
 
 builder.Services.AddAuthorization();
-builder.Services.AddScoped<Func<MySqlConnection>>(_ =>
+builder.Services.AddScoped<Func<SqliteConnection>>(_ =>
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    return () => new MySqlConnection(connectionString);
+    return () => new SqliteConnection(connectionString);
 });
 
 var app = builder.Build();
+
+// Инициализация базы данных SQLite
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (!string.IsNullOrEmpty(connectionString))
+{
+    // Создание директории для БД, если путь указан с директорией
+    var dbPath = connectionString.Replace("Data Source=", "").Trim();
+    if (dbPath.Contains('/') || dbPath.Contains('\\'))
+    {
+        var directory = Path.GetDirectoryName(dbPath);
+        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+    }
+    
+    using (var conn = new SqliteConnection(connectionString))
+    {
+        conn.Open();
+        
+        // Создание таблицы users
+        conn.Execute(@"
+            CREATE TABLE IF NOT EXISTS users (
+                username TEXT PRIMARY KEY,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL
+            )");
+        
+        // Добавление тестовых пользователей
+        conn.Execute(@"
+            INSERT OR IGNORE INTO users (username, password_hash, role) 
+            VALUES ('admin', 'admin', 'admin');
+            
+            INSERT OR IGNORE INTO users (username, password_hash, role) 
+            VALUES ('accountant', 'accountant', 'accountant');
+            
+            INSERT OR IGNORE INTO users (username, password_hash, role) 
+            VALUES ('buh', '123', 'accountant');
+        ");
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

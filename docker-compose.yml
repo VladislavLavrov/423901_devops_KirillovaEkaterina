@@ -5,37 +5,12 @@ services:
     build: ./ForecastApp1
     ports:
       - "0.0.0.0:5005:5005"
-    depends_on:
-      mariadb:
-        condition: service_healthy
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=mariadb; Database=predictApp; Uid=root; Pwd=rootpassword; Character Set=utf8; ConvertZeroDatetime=True;
-    networks:
-      - forecastapp_network
-
-  mariadb:
-    image: mariadb:11.3
-    container_name: forecastapp_mariadb
-    environment:
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: predictApp
-    ports:
-      - "0.0.0.0:5055:3306"
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/forecastapp.db
     volumes:
-      - mariadb_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - forecastapp_network
-
-networks:
-  forecastapp_network:
-    driver: bridge
+      - sqlite_data:/app/data
 
 volumes:
-  mariadb_data:
+  sqlite_data:
 
