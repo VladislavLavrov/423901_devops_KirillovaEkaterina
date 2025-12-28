@@ -1,6 +1,19 @@
-version: '3.8'
-
 services:
+  web:
+    container_name: web-app-forecastapp1-jenkins-3
+    hostname: app
+    build: ./ForecastApp1
+    ports:
+      - "0.0.0.0:5005:5005"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=mariadb; Database=predictApp; Uid=root; Pwd=rootpassword; Character Set=utf8; ConvertZeroDatetime=True;
+    networks:
+      - forecastapp_network
+
   mariadb:
     image: mariadb:11.3
     container_name: forecastapp_mariadb
@@ -16,21 +29,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - forecastapp_network
-
-  web:
-    container_name: ForecastApp1
-    hostname: app
-    build: .
-    ports:
-      - "0.0.0.0:5005:8080"
-    depends_on:
-      mariadb:
-        condition: service_healthy
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=mariadb; Database=predictApp; Uid=root; Pwd=rootpassword; Character Set=utf8; ConvertZeroDatetime=True;
     networks:
       - forecastapp_network
 
