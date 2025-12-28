@@ -18,10 +18,10 @@ services:
     image: mariadb:11.3
     container_name: forecastapp_mariadb
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: predictApp
     ports:
-      - "3306:3306"
+      - "0.0.0.0:5055:3306"
     volumes:
       - mariadb_data:/var/lib/mysql
     healthcheck:
