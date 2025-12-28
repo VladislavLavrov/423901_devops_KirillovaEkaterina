@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Инструкция по работе с системой</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/minimal.css">
+    <style>
+        .step {
+            background: #f8f9fa;
+            border-left: 4px solid #0066ff;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .success {
+            background: #d1edff;
+            border-left: 4px solid #0066ff;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Инструкция по работе с системой</h1>
+            <a href="/main.html" class="nav-button">← Назад в меню</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="content-wrapper">
+            <h2>Правильный порядок работы</h2>
+            
+            <div class="step">
+                <h3>1. Сначала добавьте поставщиков</h3>
+                <p>В разделе "Справочники" добавьте всех поставщиков с их кодами и наименованиями.</p>
+            </div>
+
+            <div class="step">
+                <h3>2. Затем добавьте договоры</h3>
+                <p>В том же разделе добавьте договоры, выбрав поставщика из выпадающего списка.</p>
+            </div>
+
+            <div class="step">
+                <h3>3. Добавьте условия договоров</h3>
+                <p>Выберите договор из выпадающего списка в формате "номер договора (код поставщика)" и укажите условия оплаты.</p>
+            </div>
+
+            <div class="step">
+                <h3>4. Импортируйте данные из Excel</h3>
+                <p>Загрузите Excel-файл с долгами и отгрузками.</p>
+            </div>
+        </div>
+
+        <div class="warning">
+            <h3>⚠️ Важно!</h3>
+            <p>Соблюдайте правильный порядок: <strong>Поставщики → Договоры → Условия</strong></p>
+            <p>Нельзя добавить договор без поставщика или условие без договора!</p>
+        </div>
+
+        <div class="success">
+            <h3>✅ Удобные выпадающие списки</h3>
+            <p>В форме добавления условий договоров теперь есть выпадающий список, который показывает:</p>
+            <ul>
+                <li>Номер договора</li>
+                <li>Код поставщика в скобках</li>
+                <li>Например: "260 (10006)"</li>
+            </ul>
+            <p>Список автоматически обновляется при добавлении, удалении или редактировании договоров.</p>
+        </div>
+    </div>
+</body>
+</html>

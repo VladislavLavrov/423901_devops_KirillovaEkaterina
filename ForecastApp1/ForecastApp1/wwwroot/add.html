@@ -1,0 +1,580 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Справочники</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/minimal.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Справочники</h1>
+            <a href="/main.html" class="nav-button">← Назад</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="content-wrapper">
+            <h2>Импорт справочников</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="excelFile">Выберите Excel-файл (.xlsx):</label>
+                    <input type="file" id="excelFile" accept=".xlsx" />
+                </div>
+                <div class="form-group">
+                    <button onclick="upload()">Импортировать</button>
+                </div>
+            </div>
+            <div id="status"></div>
+        </div>
+
+        <div class="content-wrapper">
+            <h2>Поставщики</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <input id="supplierCode" type="text" placeholder="Код поставщика">
+                </div>
+                <div class="form-group">
+                    <input id="supplierName" type="text" placeholder="Название">
+                </div>
+                <div class="form-group">
+                    <button onclick="addSupplier()">Сохранить</button>
+                </div>
+            </div>
+            <table id="suppliersTable">
+                <thead>
+                    <tr>
+                        <th>Код</th>
+                        <th>Название</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="content-wrapper">
+            <h2>Договоры с поставщиками</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <input id="contractInternal" type="text" placeholder="Код договора">
+                </div>
+                <div class="form-group">
+                    <input id="contractSupplier" type="text" placeholder="Код поставщика">
+                </div>
+                <div class="form-group">
+                    <input id="contractExternal" type="text" placeholder="№ договора (внутр.)">
+                </div>
+                <div class="form-group">
+                    <input id="contractDate" type="date">
+                </div>
+                <div class="form-group">
+                    <button onclick="addContract()">Сохранить</button>
+                </div>
+            </div>
+            <table id="contractsTable">
+                <thead>
+                    <tr>
+                        <th>Номер</th>
+                        <th>Поставщик</th>
+                        <th>Внешний №</th>
+                        <th>Дата</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="content-wrapper">
+            <h2>Условия договора</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <select id="conditionContract">
+                        <option value="">Выберите договор</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <input id="conditionMonth" type="month" placeholder="Месяц">
+                </div>
+                <div class="form-group">
+                    <input id="conditionDelay" type="number" placeholder="Отсрочка оплаты (дни)">
+                </div>
+                <div class="form-group">
+                    <button onclick="addCondition()">Сохранить</button>
+                </div>
+            </div>
+            <table id="conditionsTable">
+                <thead>
+                    <tr>
+                        <th>Договор</th>
+                        <th>Месяц</th>
+                        <th>Отсрочка</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="content-wrapper">
+            <h2>Входящие долги</h2>
+            <table id="incomingDebtTable">
+                <thead>
+                    <tr>
+                        <th>Код поставщика</th>
+                        <th>Номер договора</th>
+                        <th>Дата долга</th>
+                        <th>Сумма долга, руб.</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Модальное окно -->
+        <div class="modal" id="editModal">
+            <div class="modal-content">
+                <h3 id="modalTitle">Редактирование</h3>
+                <div id="modalFields"></div>
+                <div class="form-row">
+                    <button type="button" onclick="saveEdit()" class="btn btn-success">Сохранить</button>
+                    <button onclick="closeModal()" class="btn btn-secondary">Отмена</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+<script>
+    const apiBase = "/api";
+    async function upload() {
+        const fileInput = document.getElementById('excelFile');
+        const file = fileInput.files[0];
+        const status = document.getElementById('status');
+        status.innerHTML = '';
+
+        if (!file) {
+            status.innerHTML = '<div class="status error">Пожалуйста, выберите файл.</div>';
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('https://localhost:7052/api/ImportSpravochniki/excel', {
+                method: 'POST',
+                body: formData,
+                credentials: "include"
+            });
+
+            if (response.status === 401) {
+                location.href = "logins.html";
+                return;
+            }
+
+            if (response.ok) {
+                const result = await response.text();
+                status.innerHTML = '<div class="status success">Импорт успешно завершён.</div>';
+            } else {
+                const error = await response.text();
+                status.innerHTML = `<div class="status error">Ошибка: ${error}</div>`;
+            }
+        } catch (err) {
+            console.error('Fetch error:', err);
+            status.innerHTML = `<div class="status error">Ошибка запроса: ${err.message}</div>`;
+        }
+    }
+    // --- Поставщики ---
+    async function loadSuppliers() {
+        const res = await fetch(`${apiBase}/suppliers`);
+        const data = await res.json();
+        const tbody = document.querySelector("#suppliersTable tbody");
+        tbody.innerHTML = "";
+        data.forEach(s => {
+            const row = `<tr>
+                <td>${s.supplier_code}</td>
+                <td>${s.supplier_name}</td>
+                <td class="text-right"> 
+                  <button class="btn btn-secondary btn-sm" data-code="${s.supplier_code}" data-name="${escapeHtml(s.supplier_name)}" onclick="editSupplierFromButton(this)">Редактировать</button>
+                  <button class="btn btn-danger btn-sm" onclick="deleteSupplier('${s.supplier_code}')">Удалить</button>
+                </td>
+            </tr>`;
+            tbody.innerHTML += row;
+        });
+    }
+
+    async function addSupplier() {
+        const code = document.getElementById("supplierCode").value;
+        const name = document.getElementById("supplierName").value;
+        await fetch(`${apiBase}/suppliers`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ supplierCode: code, supplierName: name })
+        });
+        await loadSuppliers();
+    }
+
+    async function deleteSupplier(code) {
+        await fetch(`${apiBase}/suppliers/${code}`, { method: "DELETE" });
+        await loadSuppliers();
+    }
+    function editSupplierFromButton(btn) {
+        const code = btn.dataset.code;
+        const name = btn.dataset.name;
+        editSupplier(code, name); // вызываем вашу существующую функцию
+    }
+    function escapeHtml(text) {
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+    }
+    function editSupplier(code, name) {
+        editContext = { type: "supplier", key: code, data: { name } };
+        document.getElementById("modalTitle").innerText = "Редактирование поставщика";
+
+        const modalFields = document.getElementById("modalFields");
+        modalFields.innerHTML = ""; // очищаем
+
+        const input = document.createElement("input");
+        input.id = "editName";
+        input.type = "text";
+        input.value = name; // безопасно
+        input.placeholder = "Название";
+        modalFields.appendChild(input);
+
+        openModal();
+    }
+
+    // --- Договоры ---
+    async function loadContracts() {
+        const res = await fetch(`${apiBase}/contracts/GetAll`);
+        const data = await res.json();
+        const tbody = document.querySelector("#contractsTable tbody");
+        tbody.innerHTML = "";
+        data.forEach(c => {
+            const row = `<tr>
+                    <td>${c.internalContractNumber}</td>
+                    <td>${c.supplierCode}</td>
+                    <td>${c.externalContractNumber}</td>
+                    <td>${c.contractDate.split('T')[0]}</td>
+                      <td class="text-right"> 
+                      <button class="btn btn-secondary btn-sm" data-internal="${c.internalContractNumber}" data-supplier="${c.supplierCode}" data-external="${c.externalContractNumber}" data-date="${c.contractDate.split('T')[0]}" onclick="editContractFromButton(this)">Редактировать</button>
+                      <button class="btn btn-danger btn-sm" onclick="deleteContract('${c.internalContractNumber}')">Удалить</button>
+                    </td></tr>`;
+            tbody.innerHTML += row;
+        });
+    }
+
+    async function addContract() {
+        const dto = {
+            externalContractNumber: document.getElementById("contractExternal").value,
+            supplierCode: document.getElementById("contractSupplier").value,
+            internalContractNumber: document.getElementById("contractInternal").value,
+            contractDate: document.getElementById("contractDate").value
+        };
+        await fetch(`${apiBase}/contracts/Add`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(dto)
+        });
+        await loadContracts();
+        await loadContractsForSelect();
+    }
+
+    async function deleteContract(internalNumber) {
+        await fetch(`${apiBase}/contracts/Delete/${internalNumber}`, { method: "DELETE" });
+        await loadContracts();
+        await loadContractsForSelect();
+    }
+
+    function editContract(internal, supplier, external, date) {
+        editContext = { type: "contract", key: internal };
+        document.getElementById("modalTitle").innerText = "Редактирование договора";
+
+        const modalFields = document.getElementById("modalFields");
+        modalFields.innerHTML = ""; // очищаем
+
+        const inputSupplier = document.createElement("input");
+        inputSupplier.id = "editSupplier";
+        inputSupplier.type = "text";
+        inputSupplier.value = supplier;
+        inputSupplier.placeholder = "Код поставщика";
+
+        const inputExternal = document.createElement("input");
+        inputExternal.id = "editExternal";
+        inputExternal.type = "text";
+        inputExternal.value = external;
+        inputExternal.placeholder = "Внешний № договора";
+
+        const inputDate = document.createElement("input");
+        inputDate.id = "editDate";
+        inputDate.type = "date";
+        inputDate.value = date;
+
+        modalFields.appendChild(inputSupplier);
+        modalFields.appendChild(inputExternal);
+        modalFields.appendChild(inputDate);
+
+        openModal();
+    }
+    function editContractFromButton(btn) {
+        const internal = btn.dataset.internal;
+        const supplier = btn.dataset.supplier;
+        const external = btn.dataset.external;
+        const date = btn.dataset.date;
+        editContract(internal, supplier, external, date);
+    }
+    // --- Условия ---
+    async function loadConditions() {
+        const res = await fetch(`${apiBase}/conditions/GetAll`);
+        const data = await res.json();
+        const tbody = document.querySelector("#conditionsTable tbody");
+        tbody.innerHTML = "";
+        data.forEach(c => {
+            const row = `<tr>
+                    <td>${c.internalContractNumber}</td>
+                    <td>${c.orderMonth}</td>
+                    <td>${c.paymentDelayDays}</td>
+                    <td class="text-right"> 
+                      <button class="btn btn-secondary btn-sm" data-num="${c.internalContractNumber}" data-month="${c.orderMonth}" data-delay="${c.paymentDelayDays}" onclick="editConditionFromButton(this)">Редактировать</button>
+                      <button class="btn btn-danger btn-sm" onclick="deleteCondition('${c.internalContractNumber}','${c.orderMonth}')">Удалить</button>
+                    </td></tr>`;
+            tbody.innerHTML += row;
+        });
+    }
+
+    async function addCondition() {
+        const dto = {
+            internalContractNumber: document.getElementById("conditionContract").value,
+            orderMonth: document.getElementById("conditionMonth").value,
+            paymentDelayDays: parseInt(document.getElementById("conditionDelay").value)
+        };
+        await fetch(`${apiBase}/conditions/Add`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(dto)
+        });
+        await loadConditions();
+    }
+
+    async function deleteCondition(num, month) {
+        await fetch(`${apiBase}/conditions/Delete/${num}/${month}`, { method: "DELETE" });
+        await loadConditions();
+    }
+
+    function editCondition(num, month, delay) {
+        editContext = { type: "condition", key: { internalNumber: num, orderMonth: month } };
+        document.getElementById("modalTitle").innerText = "Редактирование условия";
+
+        const modalFields = document.getElementById("modalFields");
+        modalFields.innerHTML = ""; // очищаем
+
+        const input = document.createElement("input");
+        input.id = "editDelay";
+        input.type = "number";
+        input.value = delay; // безопасно
+        input.placeholder = "Отсрочка (дни)";
+        modalFields.appendChild(input);
+
+        openModal();
+    }
+    function editConditionFromButton(btn) {
+        const num = btn.dataset.num;
+        const month = btn.dataset.month;
+        const delay = btn.dataset.delay;
+        editCondition(num, month, delay);
+    }
+
+    function openModal() { document.getElementById("editModal").style.display = "flex"; }
+    function closeModal() { document.getElementById("editModal").style.display = "none"; editContext = null; }
+    async function saveEdit() {
+        if (!editContext) return;
+
+        // --- Редактирование поставщика ---
+        if (editContext.type === "supplier") {
+            const nameInput = document.getElementById("editName");
+            if (!nameInput) return;
+            const name = nameInput.value.trim();
+            if (!name) {
+                alert("Название не может быть пустым.");
+                return;
+            }
+
+            await fetch(`/api/suppliers/${editContext.key}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    SupplierCode: editContext.key,
+                    SupplierName: name
+                })
+            });
+
+            await loadSuppliers();
+        }
+        // --- Редактирование условия договора ---
+        else if (editContext.type === "condition") {
+            const delayInput = document.getElementById("editDelay");
+            if (!delayInput) return;
+            const delay = parseInt(delayInput.value);
+            if (isNaN(delay)) {
+                alert("Отсрочка должна быть числом.");
+                return;
+            }
+
+            await fetch(`/api/conditions/${editContext.key.internalNumber}/${editContext.key.orderMonth}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    internalContractNumber: editContext.key.internalNumber,
+                    orderMonth: editContext.key.orderMonth,
+                    paymentDelayDays: delay
+                })
+            });
+
+            await loadConditions();
+        }
+        else if (editContext.type === "contract") {
+            const supplierCode = document.getElementById("editSupplier").value.trim();
+            const externalNum = document.getElementById("editExternal").value.trim();
+            const date = document.getElementById("editDate").value;
+
+            if (!supplierCode || !externalNum || !date) {
+                alert("Все поля должны быть заполнены.");
+                return;
+            }
+
+            await fetch(`/api/contracts/${editContext.key}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    internalContractNumber: editContext.key,
+                    supplierCode,
+                    externalContractNumber: externalNum,
+                    contractDate: date
+                })
+            });
+
+            await loadContracts();
+            await loadContractsForSelect();
+        }
+        closeModal();
+    }
+    // --- Входящие долги ---
+    async function testIncomingDebtController() {
+        try {
+            console.log('Тестируем контроллер...');
+            const res = await fetch(`${apiBase}/incomingdebt/test`);
+            const data = await res.json();
+            console.log('Тест контроллера:', data);
+            
+            // Тестируем подсчет записей
+            const countRes = await fetch(`${apiBase}/incomingdebt/count`);
+            const countData = await countRes.json();
+            console.log('Количество записей в incoming_debt:', countData);
+        } catch (err) {
+            console.error('Ошибка теста контроллера:', err);
+        }
+    }
+
+    async function loadIncomingDebt() {
+        try {
+            console.log('Загружаем входящие долги...');
+            const res = await fetch(`${apiBase}/incomingdebt`, {
+                credentials: 'include'
+            });
+            
+            console.log('Ответ сервера:', res.status, res.statusText);
+            
+            if (!res.ok) {
+                const errorText = await res.text();
+                console.error('Ошибка загрузки входящих долгов:', res.status, errorText);
+                return;
+            }
+            
+            const data = await res.json();
+            console.log('Получены данные:', data);
+            
+            const tbody = document.querySelector("#incomingDebtTable tbody");
+            if (!tbody) {
+                console.error('Не найден элемент tbody для таблицы входящих долгов');
+                return;
+            }
+            
+            tbody.innerHTML = "";
+            
+                    if (data && data.length > 0) {
+                        data.forEach(item => {
+                            const row = `<tr>
+                                <td>${item.supplierCode || '-'}</td>
+                                <td>${item.internalContractNumber || '-'}</td>
+                                <td>${formatDate(item.debtDate)}</td>
+                                <td>${formatAmount(item.debtAmount)}</td>
+                            </tr>`;
+                            tbody.innerHTML += row;
+                        });
+                        console.log(`Загружено ${data.length} записей входящих долгов`);
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="4" class="text-center">Нет данных</td></tr>';
+                        console.log('Нет данных для отображения');
+                    }
+        } catch (err) {
+            console.error('Ошибка загрузки входящих долгов:', err);
+            const tbody = document.querySelector("#incomingDebtTable tbody");
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center">Ошибка загрузки данных</td></tr>';
+            }
+        }
+    }
+
+    // Функции форматирования
+    function formatDate(dateString) {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('ru-RU');
+    }
+
+    function formatAmount(amount) {
+        if (typeof amount !== 'number') return '-';
+        return amount.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // --- Загрузка договоров в выпадающий список ---
+    async function loadContractsForSelect() {
+        try {
+            const response = await fetch(`${apiBase}/contracts/GetAll`);
+            const contracts = await response.json();
+            
+            const select = document.getElementById('conditionContract');
+            select.innerHTML = '<option value="">Выберите договор</option>';
+            
+            contracts.forEach(contract => {
+                const option = document.createElement('option');
+                option.value = contract.internalContractNumber;
+                option.textContent = `${contract.internalContractNumber} (${contract.supplierCode})`;
+                select.appendChild(option);
+            });
+        } catch (err) {
+            console.error('Ошибка загрузки договоров:', err);
+        }
+    }
+
+    // --- Первичная загрузка ---
+    loadSuppliers();
+    loadContracts();
+    loadConditions();
+    loadContractsForSelect();
+    testIncomingDebtController();
+    loadIncomingDebt();
+</script>
+</body>
+</html>

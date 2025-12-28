@@ -1,0 +1,58 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Главная</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/minimal.css">
+</head>
+<body>
+
+    <header>
+        <div class="header-content">
+            <h1>Добро пожаловать</h1>
+            <button id="logoutBtn" class="btn btn-secondary">Выйти</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="card-grid">
+            <div class="card">
+                <h2>Расчет платежей</h2>
+                <p>Импорт данных из Excel и расчет графика платежей по договору</p>
+                <a href="index.html" class="btn">Перейти</a>
+            </div>
+
+            <div class="card">
+                <h2>Справочники</h2>
+                <p>Управляйте поставщиками, договорами и условиями</p>
+                <a href="add.html" class="btn btn-success">Открыть</a>
+            </div>
+
+            <div class="card">
+                <h2>График платежей</h2>
+                <p>Просмотр прогнозных выплат, сохранённых в БД</p>
+                <a href="rasschet.html" class="btn btn-secondary">Просмотреть</a>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.getElementById("logoutBtn").onclick = async () => {
+            // вызываем API выхода
+            let res = await fetch("/api/auth/logout", {
+                method: "POST",
+                credentials: "include"
+            });
+            if (res.ok) {
+                // после выхода отправляем на login
+                location.href = "/login.html";
+            } else {
+                alert("Ошибка выхода");
+            }
+        };
+    </script>
+</body>
+</html>

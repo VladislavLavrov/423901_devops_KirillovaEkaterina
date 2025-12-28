@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест модальных окон</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/minimal.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>🧪 Тест модальных окон</h1>
+            <a href="/main.html" class="nav-button">← Назад в меню</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="content-wrapper">
+            <h2>Улучшения модальных окон</h2>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <button onclick="openTestModal()" class="btn">Открыть тестовое модальное окно</button>
+                </div>
+            </div>
+
+            <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
+                <h3>✅ Что было исправлено:</h3>
+                <ul>
+                    <li><strong>Увеличено расстояние</strong> между полями ввода и кнопками в модальных окнах</li>
+                    <li><strong>Добавлен отступ</strong> между заголовком и полями ввода</li>
+                    <li><strong>Улучшены стили кнопок</strong> в модальных окнах</li>
+                    <li><strong>Добавлено пространство</strong> между кнопками</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Тестовое модальное окно -->
+    <div class="modal" id="testModal">
+        <div class="modal-content">
+            <h3 id="testModalTitle">Тестовое модальное окно</h3>
+            <div id="testModalFields">
+                <input type="text" placeholder="Тестовое поле ввода 1" style="width: 100%; margin-bottom: 1rem;">
+                <input type="text" placeholder="Тестовое поле ввода 2" style="width: 100%; margin-bottom: 1rem;">
+                <select style="width: 100%; margin-bottom: 1rem;">
+                    <option>Тестовый выпадающий список</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <button type="button" onclick="closeTestModal()" class="btn btn-success">Сохранить</button>
+                <button onclick="closeTestModal()" class="btn btn-secondary">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openTestModal() {
+            document.getElementById('testModal').style.display = 'flex';
+        }
+
+        function closeTestModal() {
+            document.getElementById('testModal').style.display = 'none';
+        }
+
+        // Закрытие модального окна при клике вне его
+        document.getElementById('testModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeTestModal();
+            }
+        });
+    </script>
+</body>
+</html>

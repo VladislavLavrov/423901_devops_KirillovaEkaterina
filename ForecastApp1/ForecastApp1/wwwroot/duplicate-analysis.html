@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анализ дублирующихся данных</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/minimal.css">
+    <style>
+        .analysis-section {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .duplicate-info {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .solution-info {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>🔍 Анализ дублирующихся данных</h1>
+            <a href="/main.html" class="nav-button">← Назад в меню</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="content-wrapper">
+            <h2>Проблема с дублирующимися записями</h2>
+            
+            <div class="duplicate-info">
+                <h3>🚨 Проблема:</h3>
+                <p>В таблице <code>payment_schedule</code> накапливаются дублирующиеся записи при многократном расчете графика платежей.</p>
+            </div>
+
+            <div class="solution-info">
+                <h3>✅ Решение применено:</h3>
+                <ul>
+                    <li><strong>Добавлен DISTINCT</strong> в SQL запросы контроллера</li>
+                    <li><strong>Дополнительная фильтрация</strong> на клиентской стороне</li>
+                    <li><strong>Логирование</strong> количества найденных и уникальных записей</li>
+                </ul>
+            </div>
+
+            <div class="analysis-section">
+                <h3>📊 Почему возникают дублирующиеся данные:</h3>
+                <ol>
+                    <li><strong>Многократный расчет:</strong> Каждый раз при расчете графика платежей создаются новые записи</li>
+                    <li><strong>Разные даты расчета:</strong> Записи с одинаковыми данными, но разными <code>calculation_date</code></li>
+                    <li><strong>Отсутствие уникального ключа:</strong> Нет ограничения на дублирование записей</li>
+                </ol>
+            </div>
+
+            <div class="analysis-section">
+                <h3>🔧 Почему импорт данных работает правильно:</h3>
+                <p>При импорте используются конструкции <code>ON CONFLICT</code>:</p>
+                <pre style="background: #e9ecef; padding: 1rem; border-radius: 4px; font-size: 0.9em;">
+INSERT INTO incoming_debt (supplier_code, debt_date, debt_amount, internal_contract_number)
+VALUES (@s, @date, @amount, @contract)
+ON CONFLICT (supplier_code, debt_date, internal_contract_number)
+DO UPDATE SET debt_amount = EXCLUDED.debt_amount;</pre>
+            </div>
+
+            <div class="analysis-section">
+                <h3>🧮 Почему расчет платежей работает правильно:</h3>
+                <p>В <code>PaymentScheduleService.cs</code> есть логика удаления старых записей:</p>
+                <pre style="background: #e9ecef; padding: 1rem; border-radius: 4px; font-size: 0.9em;">
+DELETE FROM payment_schedule 
+WHERE calculation_date = @CalcDate
+  AND (@Contract IS NULL OR internal_contract_number = @Contract)</pre>
+                <p><strong>Но:</strong> Если вы рассчитываете с разными датами, то старые записи не удаляются!</p>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <button onclick="testDuplicateFiltering()" class="btn">🧪 Тестировать фильтрацию дубликатов</button>
+                </div>
+            </div>
+
+            <div id="test-results"></div>
+        </div>
+    </div>
+
+    <script>
+        async function testDuplicateFiltering() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '<p>⏳ Тестируем фильтрацию дубликатов...</p>';
+
+            try {
+                const response = await fetch('/api/paymentschedule/all');
+                const data = await response.json();
+                
+                // Подсчет дубликатов
+                const duplicates = data.filter((item, index, self) => 
+                    index !== self.findIndex(t => 
+                        t.supplierCode === item.supplierCode &&
+                        t.internalContractNumber === item.internalContractNumber &&
+                        t.orderNumber === item.orderNumber &&
+                        t.shipmentDocNumber === item.shipmentDocNumber &&
+                        t.shipmentDocDate === item.shipmentDocDate &&
+                        t.totalAmount === item.totalAmount
+                    )
+                );
+
+                const uniqueData = data.filter((item, index, self) => 
+                    index === self.findIndex(t => 
+                        t.supplierCode === item.supplierCode &&
+                        t.internalContractNumber === item.internalContractNumber &&
+                        t.orderNumber === item.orderNumber &&
+                        t.shipmentDocNumber === item.shipmentDocNumber &&
+                        t.shipmentDocDate === item.shipmentDocDate &&
+                        t.totalAmount === item.totalAmount
+                    )
+                );
+
+                resultsDiv.innerHTML = `
+                    <div class="analysis-section">
+                        <h3>📊 Результаты анализа:</h3>
+                        <ul>
+                            <li><strong>Всего записей:</strong> ${data.length}</li>
+                            <li><strong>Уникальных записей:</strong> ${uniqueData.length}</li>
+                            <li><strong>Дублирующихся записей:</strong> ${duplicates.length}</li>
+                            <li><strong>Процент дубликатов:</strong> ${((duplicates.length / data.length) * 100).toFixed(1)}%</li>
+                        </ul>
+                    </div>
+                `;
+
+                if (duplicates.length > 0) {
+                    resultsDiv.innerHTML += `
+                        <div class="duplicate-info">
+                            <h3>🔍 Примеры дублирующихся записей:</h3>
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #e9ecef;">
+                                        <th style="border: 1px solid #dee2e6; padding: 0.5rem;">Поставщик</th>
+                                        <th style="border: 1px solid #dee2e6; padding: 0.5rem;">Договор</th>
+                                        <th style="border: 1px solid #dee2e6; padding: 0.5rem;">Заказ</th>
+                                        <th style="border: 1px solid #dee2e6; padding: 0.5rem;">Документ</th>
+                                        <th style="border: 1px solid #dee2e6; padding: 0.5rem;">Дата отгрузки</th>
+                                        <th style="border: 1px solid #dee2e6; padding: 0.5rem;">Сумма</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${duplicates.slice(0, 5).map(item => `
+                                        <tr>
+                                            <td style="border: 1px solid #dee2e6; padding: 0.5rem;">${item.supplierCode}</td>
+                                            <td style="border: 1px solid #dee2e6; padding: 0.5rem;">${item.internalContractNumber}</td>
+                                            <td style="border: 1px solid #dee2e6; padding: 0.5rem;">${item.orderNumber}</td>
+                                            <td style="border: 1px solid #dee2e6; padding: 0.5rem;">${item.shipmentDocNumber}</td>
+                                            <td style="border: 1px solid #dee2e6; padding: 0.5rem;">${new Date(item.shipmentDocDate).toLocaleDateString('ru-RU')}</td>
+                                            <td style="border: 1px solid #dee2e6; padding: 0.5rem;">${item.totalAmount.toLocaleString('ru-RU')}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML += `
+                        <div class="solution-info">
+                            <h3>✅ Отлично!</h3>
+                            <p>Дублирующихся записей не найдено. Фильтрация работает корректно.</p>
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="duplicate-info">
+                        <h3>❌ Ошибка</h3>
+                        <p>Ошибка: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

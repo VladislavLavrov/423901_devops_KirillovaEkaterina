@@ -1,0 +1,264 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Импорт данных и график платежей</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/minimal.css">
+    <style>
+        .status.warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 0.75rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-content">
+            <h1>Импорт данных и график платежей</h1>
+            <a href="/main.html" class="nav-button">← Назад</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="content-wrapper">
+            <h2>Импорт отгрузок</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="excelFile">Выберите Excel-файл (.xlsx):</label>
+                    <input type="file" id="excelFile" accept=".xlsx" />
+                </div>
+                <div class="form-group">
+                    <button onclick="upload()">Импортировать</button>
+                </div>
+            </div>
+            <div id="import-status"></div>
+        </div>
+
+        <div class="content-wrapper">
+            <h2>График платежей</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="calc-date">Дата расчета:</label>
+                    <input type="date" id="calc-date" />
+                </div>
+                <div class="form-group">
+                    <label for="contract">Номер договора:</label>
+                    <select id="contract" onchange="onContractChange()">
+                        <option value="">Все договоры</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button onclick="calculate()">Рассчитать</button>
+                </div>
+            </div>
+            <div id="status"></div>
+
+            <table id="payments-table" style="display:none;">
+                <thead>
+                    <tr>
+                        <th>Код поставщика</th>
+                        <th>Код договора</th>
+                        <th>Номер заказа</th>
+                        <th>Номер документа отгрузки</th>
+                        <th>Дата документа отгрузки</th>
+                        <th>Сумма отгрузки, руб.</th>
+                        <th>Дата платежа по условию</th>
+                        <th>Прогнозная дата платежа</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Импорт Excel
+        async function upload() {
+            const fileInput = document.getElementById('excelFile');
+            const file = fileInput.files[0];
+            const status = document.getElementById('import-status');
+            status.innerHTML = '';
+
+            if (!file) {
+                status.innerHTML = '<div class="status error">Пожалуйста, выберите файл.</div>';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('https://localhost:7052/api/import/excel', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const result = await response.text();
+                    status.innerHTML = '<div class="status success">Импорт успешно завершён.</div>';
+                } else {
+                    const error = await response.text();
+                    status.innerHTML = `<div class="status error">Ошибка: ${error}</div>`;
+                }
+            } catch (err) {
+                console.error('Fetch error:', err);
+                status.innerHTML = `<div class="status error">Ошибка запроса: ${err.message}</div>`;
+            }
+        }
+
+        // График платежей
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ru-RU');
+        }
+
+        function formatAmount(amount) {
+            if (typeof amount !== 'number') return '-';
+            return amount.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // Проверка существующих данных по договору
+        async function checkExistingData(contract) {
+            if (!contract) return false;
+            
+            try {
+                const response = await fetch(`/api/paymentschedule/by-contract/${contract}`);
+                const data = await response.json();
+                return data && data.length > 0;
+            } catch (err) {
+                console.error('Ошибка проверки существующих данных:', err);
+                return false;
+            }
+        }
+
+        // Обработчик изменения выбора договора
+        async function onContractChange() {
+            const contract = document.getElementById('contract').value;
+            const status = document.getElementById('status');
+            
+            if (contract) {
+                const hasExistingData = await checkExistingData(contract);
+                if (hasExistingData) {
+                    status.innerHTML = `<div class="status warning">⚠️ По договору ${contract} уже есть данные в графике платежей. При повторном расчете данные будут перезаписаны.</div>`;
+                } else {
+                    status.innerHTML = '';
+                }
+            } else {
+                status.innerHTML = '';
+            }
+        }
+
+        async function calculate() {
+            const date = document.getElementById('calc-date').value;
+            const contract = document.getElementById('contract').value;
+            const status = document.getElementById('status');
+            
+            if (!date) {
+                alert('Выберите дату расчета');
+                return;
+            }
+
+            try {
+                // Если выбран конкретный договор, сначала удаляем старые данные
+                if (contract) {
+                    status.innerHTML = '<div class="status">🔄 Удаление старых данных по договору...</div>';
+                    
+                    const deleteResponse = await fetch(`/api/paymentschedule/by-contract/${contract}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (deleteResponse.ok) {
+                        const deleteResult = await deleteResponse.json();
+                        status.innerHTML = `<div class="status success">✅ ${deleteResult.message}</div>`;
+                    } else {
+                        console.warn('Не удалось удалить старые данные');
+                    }
+                }
+
+                // Выполняем расчет
+                status.innerHTML = '<div class="status">🔄 Выполняется расчет...</div>';
+                
+                let url = `/api/payments/schedule?startDate=${date}`;
+                if (contract) {
+                    url += `&contract=${encodeURIComponent(contract)}`;
+                }
+                
+                const response = await fetch(url);
+                const data = await response.json();
+
+                const table = document.getElementById('payments-table');
+                const tbody = table.querySelector('tbody');
+                tbody.innerHTML = '';
+
+                if (data.length === 0) {
+                    table.style.display = 'none';
+                    status.innerHTML = '<div class="status error">❌ Нет данных на выбранную дату.</div>';
+                    return;
+                }
+
+                data.sort((a, b) => {
+                    const d1 = a.shipmentDocDate ? new Date(a.shipmentDocDate) : new Date(0);
+                    const d2 = b.shipmentDocDate ? new Date(b.shipmentDocDate) : new Date(0);
+                    return d1 - d2;
+                });
+
+                data.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                            <td>${item.supplierCode}</td>
+                            <td>${item.internalContractNumber ?? '-'}</td>
+                            <td>${item.orderNumber ?? '-'}</td>
+                            <td>${item.shipmentDocNumber ?? '-'}</td>
+                            <td>${formatDate(item.shipmentDocDate)}</td>
+                            <td>${formatAmount(item.totalAmount)}</td>
+                            <td>${formatDate(item.paymentDateByCondition)}</td>
+                            <td>${formatDate(item.paymentDate)}</td>
+                        `;
+                    tbody.appendChild(tr);
+                });
+
+                table.style.display = '';
+                
+                // Показываем результат
+                if (contract) {
+                    status.innerHTML = `<div class="status success">✅ Расчет по договору ${contract} завершен! Добавлено записей: ${data.length}</div>`;
+                } else {
+                    status.innerHTML = `<div class="status success">✅ Расчет по всем договорам завершен! Добавлено записей: ${data.length}</div>`;
+                }
+                
+            } catch (err) {
+                console.error('Ошибка расчета:', err);
+                status.innerHTML = `<div class="status error">❌ Ошибка при расчете: ${err.message}</div>`;
+            }
+        }
+        async function loadContracts() {
+            const select = document.getElementById('contract');
+            try {
+                const response = await fetch('/api/contracts/list');
+                const contracts = await response.json();
+
+                contracts.forEach(contract => {
+                    const option = document.createElement('option');
+                    option.value = contract;
+                    option.textContent = contract;
+                    select.appendChild(option);
+                });
+            } catch (err) {
+                console.error("Ошибка загрузки договоров:", err);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadContracts);
+    </script>
+
+</body>
+</html>

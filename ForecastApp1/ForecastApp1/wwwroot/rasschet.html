@@ -1,0 +1,253 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>График платежей</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/minimal.css">
+    <style>
+        .sortable {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+        .sortable:hover {
+            background-color: #f8f9fa;
+        }
+        .sortable.active {
+            background-color: #1976d2;
+            color: white;
+            font-weight: bold;
+        }
+        .sortable::after {
+            content: '';
+        }
+        .sortable.asc::after {
+            content: '';
+        }
+        .sortable.desc::after {
+            content: '';
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>График платежей</h1>
+            <a href="/main.html" class="nav-button">← Назад</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="content-wrapper">
+            <h2>Поиск данных</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <select id="searchType">
+                        <option value="all">Все записи</option>
+                        <option value="contract">По договору</option>
+                        <option value="supplier">По поставщику</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="searchValue" placeholder="Введите значение..." />
+                </div>
+                <div class="form-group">
+                    <button onclick="loadData()">Найти</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-wrapper">
+            <h2>Результаты поиска</h2>
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-column="supplierCode">Код поставщика</th>
+                        <th class="sortable" data-column="internalContractNumber">Код договора</th>
+                        <th class="sortable" data-column="orderNumber">Номер заказа</th>
+                        <th class="sortable" data-column="shipmentDocNumber">Номер документа отгрузки</th>
+                        <th class="sortable" data-column="shipmentDocDate">Дата документа отгрузки</th>
+                        <th class="sortable" data-column="totalAmount">Сумма отгрузки, руб.</th>
+                        <th class="sortable" data-column="paymentDateByCondition">Дата платежа по условию</th>
+                        <th class="sortable active" data-column="paymentDate">Прогнозная дата платежа</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <div id="error"></div>
+        </div>
+    </div>
+
+    <script>
+        // Переменные для сортировки
+        let currentData = [];
+        let currentSortColumn = 'paymentDate';
+        let currentSortDirection = 'asc';
+
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ru-RU');
+        }
+
+        function formatAmount(amount) {
+            if (typeof amount !== 'number') return '-';
+            return amount.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function sortData(data, column, direction) {
+            return [...data].sort((a, b) => {
+                let valueA = a[column];
+                let valueB = b[column];
+
+                // Обработка дат
+                if (column.includes('Date')) {
+                    valueA = new Date(valueA || '1900-01-01');
+                    valueB = new Date(valueB || '1900-01-01');
+                }
+                // Обработка чисел
+                else if (column === 'totalAmount') {
+                    valueA = parseFloat(valueA) || 0;
+                    valueB = parseFloat(valueB) || 0;
+                }
+                // Обработка строк
+                else {
+                    valueA = (valueA || '').toString().toLowerCase();
+                    valueB = (valueB || '').toString().toLowerCase();
+                }
+
+                if (direction === 'asc') {
+                    return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+                } else {
+                    return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+                }
+            });
+        }
+
+        function updateSortHeaders(activeColumn, direction) {
+            // Убираем все активные классы
+            document.querySelectorAll('.sortable').forEach(th => {
+                th.classList.remove('active', 'asc', 'desc');
+            });
+
+            // Добавляем активный класс к текущему столбцу
+            const activeTh = document.querySelector(`[data-column="${activeColumn}"]`);
+            if (activeTh) {
+                activeTh.classList.add('active', direction);
+            }
+        }
+
+        function renderTable(data) {
+            const tbody = document.querySelector("#dataTable tbody");
+            tbody.innerHTML = "";
+
+            // Дополнительная фильтрация дублирующихся записей на клиентской стороне
+            const uniqueData = data.filter((item, index, self) => 
+                index === self.findIndex(t => 
+                    t.supplierCode === item.supplierCode &&
+                    t.internalContractNumber === item.internalContractNumber &&
+                    t.orderNumber === item.orderNumber &&
+                    t.shipmentDocNumber === item.shipmentDocNumber &&
+                    t.shipmentDocDate === item.shipmentDocDate &&
+                    t.totalAmount === item.totalAmount
+                )
+            );
+
+            console.log(`Найдено записей: ${data.length}, уникальных: ${uniqueData.length}`);
+
+            // Сортировка данных
+            const sortedData = sortData(uniqueData, currentSortColumn, currentSortDirection);
+            currentData = sortedData;
+
+            // Обновляем заголовки
+            updateSortHeaders(currentSortColumn, currentSortDirection);
+
+            sortedData.forEach(item => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                        <td>${item.supplierCode}</td>
+                        <td>${item.internalContractNumber ?? '-'}</td>
+                        <td>${item.orderNumber ?? '-'}</td>
+                        <td>${item.shipmentDocNumber ?? '-'}</td>
+                        <td>${formatDate(item.shipmentDocDate)}</td>
+                        <td>${formatAmount(item.totalAmount)}</td>
+                        <td>${formatDate(item.paymentDateByCondition)}</td>
+                        <td>${formatDate(item.paymentDate)}</td>
+                    `;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function loadData() {
+            const type = document.getElementById("searchType").value;
+            const value = document.getElementById("searchValue").value.trim();
+            const errorDiv = document.getElementById("error");
+
+            errorDiv.innerHTML = "";
+
+            let url = "https://localhost:7052/api/paymentschedule/all";
+
+            if (type === "contract" && value) {
+                url = `https://localhost:7052/api/paymentschedule/by-contract/${value}`;
+            } else if (type === "supplier" && value) {
+                url = `https://localhost:7052/api/paymentschedule/by-supplier/${value}`;
+            }
+
+            try {
+                const response = await fetch(url, { credentials: "include" });
+
+                if (response.status === 401) {
+                    location.href = "logins.html";
+                    return;
+                }
+
+                const data = await response.json();
+                if (data.length === 0) {
+                    errorDiv.innerHTML = '<div class="status error">Данные не найдены.</div>';
+                    return;
+                }
+
+                // Сохраняем данные и рендерим таблицу
+                currentData = data;
+                renderTable(data);
+
+            } catch (err) {
+                console.error(err);
+                errorDiv.innerHTML = `<div class="status error">${err.message}</div>`;
+            }
+        }
+
+        // Обработчик кликов по заголовкам
+        function handleSort(column) {
+            if (currentSortColumn === column) {
+                // Если кликнули по тому же столбцу, меняем направление
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                // Если кликнули по другому столбцу, сортируем по возрастанию
+                currentSortColumn = column;
+                currentSortDirection = 'asc';
+            }
+            
+            // Перерисовываем таблицу с новой сортировкой
+            renderTable(currentData);
+        }
+
+        // Инициализация обработчиков кликов по заголовкам
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.sortable').forEach(th => {
+                th.addEventListener('click', function() {
+                    const column = this.getAttribute('data-column');
+                    handleSort(column);
+                });
+            });
+        });
+
+        // загрузка всех данных при открытии страницы
+        loadData();
+    </script>
+</body>
+</html>
