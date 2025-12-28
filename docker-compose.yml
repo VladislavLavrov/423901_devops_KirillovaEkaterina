@@ -5,12 +5,5 @@ services:
     build: ./ForecastApp1
     ports:
       - "0.0.0.0:5005:5005"
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Data Source=/app/data/forecastapp.db
-    volumes:
-      - sqlite_data:/app/data
-
-volumes:
-  sqlite_data:
-
+    
+ 
