@@ -168,7 +168,7 @@
         formData.append('file', file);
 
         try {
-            const response = await fetch('https://localhost:7052/api/ImportSpravochniki/excel', {
+            const response = await fetch('/api/ImportSpravochniki/excel', {
                 method: 'POST',
                 body: formData,
                 credentials: "include"
